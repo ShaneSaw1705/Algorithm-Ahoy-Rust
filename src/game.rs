@@ -37,4 +37,18 @@ impl GameState {
     pub fn get_player_pos(&self) -> JsValue {
         to_value(&self.player_pos).unwrap()
     }
+
+    pub fn update_player_pos(&mut self, x: i32, y: i32) {
+        // Gets the current position of the player before updating it
+        let (old_x, old_y) = self.player_pos;
+
+        //remove the player
+        self.vec[old_x as usize][old_y as usize] = b'0';
+
+        //update the player position
+        self.player_pos = (x, y);
+
+        //add the player to the new position
+        self.vec[x as usize][y as usize] = b'X';
+    }
 }
