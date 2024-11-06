@@ -8,6 +8,15 @@ pub struct GameState {
     vec: Vec<Vec<u8>>,
     player_pos: (i32, i32),
     player_dir: (i32, i32),
+    levels: Vec<Level>,
+}
+
+#[wasm_bindgen]
+pub struct Level {
+    id: i32,
+    board: Vec<Vec<u8>>,
+    starting_pos: (i32, i32),
+    dialoge: String,
 }
 
 #[wasm_bindgen]
@@ -16,11 +25,55 @@ impl GameState {
         let mut board = vec![vec![b'0'; size as usize]; size as usize];
         let mid = (size / 2) as usize;
         board[mid][mid] = b'X';
+        // I dont have time for a better soloution so here is every level hardcoded : )
+        let levels: Vec<Level> = vec![
+            Level {
+                id: 1,
+                board: vec![
+                    vec![b'0', b'0', b'0', b'0', b'0'],
+                    vec![b'0', b'0', b'0', b'0', b'0'],
+                    vec![b'0', b'0', b'0', b'0', b'0'],
+                    vec![b'0', b'0', b'0', b'0', b'0'],
+                    vec![b'0', b'0', b'0', b'0', b'0'],
+                ],
+                starting_pos: (2, 2),
+                dialoge: "Welcome to the first level".to_string(),
+            },
+            Level {
+                id: 2,
+                board: vec![
+                    vec![b'#', b'#', b'0', b'0', b'0'],
+                    vec![b'#', b'0', b'0', b'0', b'0'],
+                    vec![b'0', b'0', b'0', b'0', b'0'],
+                    vec![b'0', b'0', b'0', b'0', b'0'],
+                    vec![b'0', b'0', b'0', b'0', b'0'],
+                ],
+                starting_pos: (2, 2),
+                dialoge: "Welcome to the second level".to_string(),
+            },
+        ];
         GameState {
             vec: board,
             player_pos: (mid as i32, mid as i32),
             player_dir: (-1, 0),
+            levels,
         }
+    }
+
+    /// Function to load a level(board)
+    pub fn load_level(&mut self, level_num: i32) -> String {
+        if let Some(level) = self.levels.iter().find(|&level| level.id == level_num) {
+            self.vec = level.board.clone();
+            self.update_player_pos(level.starting_pos.0, level.starting_pos.1);
+        }
+        return self.get_dialoge(level_num);
+    }
+
+    fn get_dialoge(&self, level_num: i32) -> String {
+        if let Some(level) = self.levels.iter().find(|&level| level.id == level_num) {
+            return level.dialoge.clone();
+        }
+        return "No dialoge found".to_string();
     }
 
     pub fn get_board(&self) -> Array {
@@ -41,17 +94,20 @@ impl GameState {
     }
 
     fn update_player_pos(&mut self, x: i32, y: i32) {
-        // Gets the current position of the player before updating it
         let (old_x, old_y) = self.player_pos;
 
-        //remove the player
-        self.vec[old_x as usize][old_y as usize] = b'0';
+        if old_x >= 0
+            && old_x < self.vec.len() as i32
+            && old_y >= 0
+            && old_y < self.vec[0].len() as i32
+        {
+            self.vec[old_x as usize][old_y as usize] = b'0';
+        }
 
-        //update the player position
-        self.player_pos = (x, y);
-
-        //add the player to the new position
-        self.vec[x as usize][y as usize] = b'X';
+        if x >= 0 && x < self.vec.len() as i32 && y >= 0 && y < self.vec[0].len() as i32 {
+            self.player_pos = (x, y);
+            self.vec[x as usize][y as usize] = b'X';
+        }
     }
 
     fn update_player_dir(&mut self, x: i32, y: i32) {
@@ -69,7 +125,10 @@ impl GameState {
             && new_y >= 0
             && new_y < self.vec.len() as i32
         {
-            self.update_player_pos(new_x, new_y);
+            // Check if the new position is not a wall
+            if self.vec[new_x as usize][new_y as usize] != b'#' {
+                self.update_player_pos(new_x, new_y);
+            }
         }
     }
 
