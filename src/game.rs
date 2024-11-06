@@ -25,39 +25,69 @@ impl GameState {
         let mut board = vec![vec![b'0'; size as usize]; size as usize];
         let mid = (size / 2) as usize;
         board[mid][mid] = b'X';
+
         // I dont have time for a better soloution so here is every level hardcoded : )
         let levels: Vec<Level> = vec![
             Level {
                 id: 1,
                 board: vec![
+                    vec![b'C', b'0', b'0', b'0', b'C'],
                     vec![b'0', b'0', b'0', b'0', b'0'],
                     vec![b'0', b'0', b'0', b'0', b'0'],
                     vec![b'0', b'0', b'0', b'0', b'0'],
-                    vec![b'0', b'0', b'0', b'0', b'0'],
-                    vec![b'0', b'0', b'0', b'0', b'0'],
+                    vec![b'C', b'0', b'0', b'0', b'C'],
                 ],
                 starting_pos: (2, 2),
-                dialoge: "Welcome to the first level".to_string(),
+                dialoge: "Welcome to the first level collect all four coins in each corner".to_string(),
             },
             Level {
                 id: 2,
                 board: vec![
-                    vec![b'#', b'#', b'0', b'0', b'0'],
-                    vec![b'#', b'0', b'0', b'0', b'0'],
+                    vec![b'#', b'#', b'#', b'0', b'0'],
+                    vec![b'#', b'C', b'#', b'0', b'0'],
                     vec![b'0', b'0', b'0', b'0', b'0'],
                     vec![b'0', b'0', b'0', b'0', b'0'],
                     vec![b'0', b'0', b'0', b'0', b'0'],
                 ],
                 starting_pos: (2, 2),
-                dialoge: "Welcome to the second level".to_string(),
+                dialoge: "Welcome to the second level you need to navigate in to the room to grab the coin\n Remeber that you can get the neighbouring cell in any direction using
+                    get_neighbour('north')".to_string(),
+            },
+            Level {
+                id: 3,
+                board: vec![
+                    vec![b'0', b'0', b'0', b'C', b'C'],
+                    vec![b'0', b'0', b'0', b'#', b'#'],
+                    vec![b'0', b'0', b'0', b'#', b'C'],
+                    vec![b'0', b'0', b'0', b'0', b'0'],
+                    vec![b'0', b'0', b'0', b'0', b'0'],
+                ],
+                starting_pos: (2, 2),
+                dialoge: "Welcome to the second level you need to navigate in to the room to grab the coin\n Remeber that you can get the neighbouring cell in any direction using
+                    get_neighbour('north')".to_string(),
             },
         ];
+        // adds a coin so it doesnt say you won the game straight away :)
+        board[mid - 3][mid] = b'C';
         GameState {
             vec: board,
             player_pos: (mid as i32, mid as i32),
             player_dir: (-1, 0),
             levels,
         }
+    }
+
+    /// Returns the current coin count as its the easiest way I could think of "winning" the game
+    pub fn get_coin_count(&self) -> i32 {
+        let mut count = 0;
+        for row in &self.vec {
+            for &cell in row {
+                if cell == b'C' {
+                    count += 1;
+                }
+            }
+        }
+        count
     }
 
     /// Function to load a level(board)
@@ -140,6 +170,38 @@ impl GameState {
             _ => (0, 0),
         };
         self.update_player_dir(new_dir.0, new_dir.1);
+    }
+
+    pub fn get_neighbour(&self, direction: &str) -> JsValue {
+        let (x, y) = self.player_pos;
+        let (dx, dy) = match direction {
+            "north" => (-1, 0),
+            "south" => (1, 0),
+            "east" => (0, 1),
+            "west" => (0, -1),
+            _ => (0, 0),
+        };
+        let new_x = x + dx;
+        let new_y = y + dy;
+
+        if new_x >= 0
+            && new_x < self.vec.len() as i32
+            && new_y >= 0
+            && new_y < self.vec[0].len() as i32
+        {
+            let neighbour = self.vec[new_x as usize][new_y as usize];
+
+            let result = match neighbour {
+                b'#' => "wall",
+                b'0' => "space",
+                b'C' => "coin",
+                _ => "unknown",
+            };
+
+            return JsValue::from_str(result);
+        }
+
+        JsValue::NULL
     }
 
     pub fn get_neighbouring_cells(&self) -> Array {
